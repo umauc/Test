@@ -26,21 +26,45 @@ def antishield(url, pid): #反腾讯图片和谐，原理是在图片的四角�
 
 @app.receiver('GroupMessage')
 async def event_gm(app: Mirai, gm: GroupMessage, group: Group, member: Member):
-    if str(type(gm.messageChain.__root__[1])) == "<class 'mirai.event.message.components.Plain'>":
-        message = gm.messageChain.__root__[1].text
-        if regex.compile('^#?(RWKK)?(?<keyword>.*)$', regex.I).match(message)[1] == 'RWKK':
+    async with aiohttp.ClientSession() as session:
+        if str(type(gm.messageChain.__root__[1])) == "<class 'mirai.event.message.components.Plain'>":
+            message = gm.messageChain.__root__[1].text
+            if regex.compile('^#?(RWKK)?(?<keyword>.*)$', regex.I).match(message)[1] == 'RWKK':
+                print('开始处理')
+                keyword=regex.compile('^#?(RWKK)?(?<keyword>.*)$', regex.I).match(message)[2]
+                if keyword == 'None':
+    			    async with session.get('https://api.lolicon.app/setu/?apikey=408800685e6e285c17f744&size1200=true') as r:
+                    data =await r.json()['data'][0]
+                else:
+    		        async with session.get('https://api.lolicon.app/setu/?apikey=408800685e6e285c17f744&size1200=true&keyword=' + keyword) as r:
+                    data =await r.json()['data'][0]
+                if await r.json()['code'] == '404':
+                    await app.sendGroupMessage(group,[Plain(text='弟啊你XP咋那么奇怪啊?')])
+                else:
+                    pid =data.get('pid')
+                    url = data.get('url')
+                    title = data.get('title')
+                    file = antishield(url, pid)
+                    if file == '0':
+                        await app.sendGroupMessage(group,[Plain(text='图片获取失败!')])
+                    else:
+                        await app.sendGroupMessage(group, [Plain(text=f'标题:{title},ID:{pid}')])
+                        message1 = urllib.parse.quote(f'[CQ:image,file={url}]')
+    		   			async with session.get(f"http://120.79.196.188:5700/send_group_msg?group_id={group.id}&message={message1}") as send:
+                    	    if await send.json().get('status') == 'ok':
+                        	    print('ok')
+                                await asyncio.sleep(15)
+                                async with session.get(f"http://120.79.196.188:5700/delete_msg?message_id={await send.json().get('data').get('message_id')}") as send1:
+                                    print (send1.json())
+    elif str(type(gm.messageChain.__root__[1])) == "<class 'mirai.event.message.components.Image'>":
+        imageID = gm.messageChain.__root__[1].imageId
+        if imageID == 'B407F708-A2C6-A506-3420-98DF7CAC4A57':
             print('开始处理')
-            keyword=regex.compile('^#?(RWKK)?(?<keyword>.*)$', regex.I).match(message)[2]
-            if keyword == 'None':
-                async with aiohttp.ClientSession() as session:
-    			async with session.get('https://api.lolicon.app/setu/?apikey=408800685e6e285c17f744&size1200=true') as r:
-            else:
-                async with aiohttp.ClientSession() as session:
-    			async with session.get('https://api.lolicon.app/setu/?apikey=408800685e6e285c17f744&size1200=true&keyword=' + keyword) as r:
+    	    async with session.get('https://api.lolicon.app/setu/?apikey=408800685e6e285c17f744&size1200=true') as r:
+            data =await r.json()['data'][0]
             if await r.json()['code'] == '404':
                 await app.sendGroupMessage(group,[Plain(text='弟啊你XP咋那么奇怪啊?')])
             else:
-                data =await r.json()['data'][0]
                 pid =data.get('pid')
                 url = data.get('url')
                 title = data.get('title')
@@ -50,36 +74,11 @@ async def event_gm(app: Mirai, gm: GroupMessage, group: Group, member: Member):
                 else:
                     await app.sendGroupMessage(group, [Plain(text=f'标题:{title},ID:{pid}')])
                     message1 = urllib.parse.quote(f'[CQ:image,file={url}]')
-                    async with aiohttp.ClientSession() as session:
-    					async with session.get(f"http://120.79.196.188:5700/send_group_msg?group_id={group.id}&message={message1}") as send:
-                    	if await send.json().get('status') == 'ok':
-                        	print('ok')
-                        await asyncio.sleep(15)
- 
-                        print (send1.json())
-    elif str(type(gm.messageChain.__root__[1])) == "<class 'mirai.event.message.components.Image'>":
-        imageID = gm.messageChain.__root__[1].imageId
-        if imageID == 'B407F708-A2C6-A506-3420-98DF7CAC4A57':
-            print('开始处理')
-            r = requests.get('https://api.lolicon.app/setu/?apikey=408800685e6e285c17f744&size1200=true')
-            data = r.json()['data'][0]
-            pid = data.get('pid')
-            url = data.get('url')
-            title = data.get('title')           
-            file = antishield(url, pid)
-            if file == '0':
-                await app.sendGroupMessage(group,
-                    [
-                        Plain(text='图片获取失败!')
-                    ])
-            else:
-                await app.sendGroupMessage(group, [Plain(text=f'标题:{title},ID:{pid}')])
-                message1 = urllib.parse.quote(f'[CQ:image,file={url}]')
-                send = requests.get(f'http://120.79.196.188:5700/send_group_msg?group_id={group.id}&message={message1}')
-                if send.json().get('status') == 'ok':
-                    print ('OK')
-                    await asyncio.sleep(15)
-                    send1 = requests.get(f"http://120.79.196.188:5700/delete_msg?message_id={send.json().get('data').get('message_id')}")
-                    print(send1.json())
+     	   			async with session.get(f"http://120.79.196.188:5700/send_group_msg?group_id={group.id}&message={message1}") as send:
+                   	    if await send.json().get('status') == 'ok':
+                       	    print('ok')
+                            await asyncio.sleep(15)
+                            async with session.get(f"http://120.79.196.188:5700/delete_msg?message_id={await send.json().get('data').get('message_id')}") as send1:
+                                print (send1.json())
 if __name__ == "__main__":
     app.run()
